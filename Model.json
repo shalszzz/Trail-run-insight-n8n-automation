@@ -1,0 +1,418 @@
+{
+  "updatedAt": "2026-07-08T12:39:07.125Z",
+  "createdAt": "2026-07-08T07:27:27.317Z",
+  "id": "J6oaZxIfB8LSyqnT",
+  "name": "My workflow",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ba7d37ce-8300-4965-8463-23a11a76ea02",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "38c9df4b-90d6-4d20-9bd8-ce48b07f0273",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "a4709731-7e5f-4d81-bfc5-3ab985dfb9d1",
+      "name": "Ollama Chat Model"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "9b9916d0-8b59-4c69-9923-51ddd2d14dbe",
+  "activeVersionId": "9b9916d0-8b59-4c69-9923-51ddd2d14dbe",
+  "versionCounter": 142,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "shared": [
+    {
+      "updatedAt": "2026-07-08T07:27:27.324Z",
+      "createdAt": "2026-07-08T07:27:27.324Z",
+      "role": "workflow:owner",
+      "workflowId": "J6oaZxIfB8LSyqnT",
+      "projectId": "L3o1sSk0lCcnwLuy",
+      "project": {
+        "updatedAt": "2026-07-08T07:26:28.709Z",
+        "createdAt": "2026-07-08T07:25:48.281Z",
+        "id": "L3o1sSk0lCcnwLuy",
+        "name": "Shalini Venkatesh <shalini2410399@ssn.edu.in>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "f1dffa93-22c6-42c8-9f89-bc0a15f8645f"
+      }
+    }
+  ],
+  "tags": [],
+  "parentFolder": null,
+  "activeVersion": {
+    "updatedAt": "2026-07-08T12:42:37.000Z",
+    "createdAt": "2026-07-08T12:39:07.126Z",
+    "versionId": "9b9916d0-8b59-4c69-9923-51ddd2d14dbe",
+    "workflowId": "J6oaZxIfB8LSyqnT",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 6
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          0,
+          0
+        ],
+        "id": "ba7d37ce-8300-4965-8463-23a11a76ea02",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "ROLE\nTrail-run planning assistant. Check if today is a scheduled run day via\nGoogle Calendar, and if so, recommend a trail from the Sheets list based\non today's weather.\n\nTOOL RULES (strict)\n- Call Google Calendar first, every run, no exceptions. Never guess run status.\n- If \"Run Today\" event found → you MUST also call Weather (once) and\n  Google Sheets (once) before responding. Do not skip Sheets even if you\n  think you know the trail list.\n- Call each tool at most once per run. Never repeat a tool call, even on\n  partial/missing data or errors — use FALLBACKS instead.\n- Search the FULL day (12:00 AM–11:59 PM) for the event, any time of day.\n\nSTEPS\n1. Call Calendar. Look for event titled \"Run Today\" (case/spacing insensitive).\n2. No match → stop, output only: {\"run_scheduled\": false}\n3. Match found → note its start time as scheduled_time.\n4. Call Weather once, for that scheduled time. Extract temp, UV, precip, wind (whatever is present).\n5. Call Sheets once. Get full trail list (Name, Miles, Elevation, Estimated Time, Shade Level).\n6. Pick a trail from the Sheets list only — never invent names/data.\n7. Trigger the scheduled action (notification/calendar detail) at scheduled_time with the trail attached.\n8. Output final JSON. Stop calling tools once Calendar/Weather/Sheets have each been called their required number of times.\n\nFALLBACKS\n- Missing weather field → proceed with what's available, note gap in reasoning. Do not retry.\n- Weather call fails entirely → default to a \"Shady\"/\"Some Shade\" trail, flag unconfirmed weather in reasoning.\n- Any tool error → do not retry; proceed with best available info, note failure in reasoning.\n\nOUTPUT\nRaw JSON only, no markdown fences, no extra text.\n{\n  \"run_scheduled\": true/false,\n  \"scheduled_time\": \"HH:MM AM/PM or null\",\n  \"weather_summary\": \"short summary of temp, UV, precipitation, wind\",\n  \"recommended_trail\": {\n    \"name\": \"\",\n    \"miles\": \"\",\n    \"elevation\": \"\",\n    \"estimated_time\": \"\",\n    \"shade_level\": \"\"\n  },\n  \"reasoning\": \"1-2 sentence explanation\"\n}\nIf no run scheduled, return only: {\"run_scheduled\": false}",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          208,
+          0
+        ],
+        "id": "38c9df4b-90d6-4d20-9bd8-ce48b07f0273",
+        "name": "AI Agent"
+      },
+      {
+        "parameters": {
+          "toolDescription": "Fetches today's weather forecast (temperature, apparent temperature,\nhumidity, weather code, wind speed, UV index, precipitation probability)\nfor the fixed location. Takes no parameters — call with no arguments.",
+          "url": "https://api.open-meteo.com/v1/forecast?latitude=13.0827&longitude=80.2707&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,uv_index,precipitation_probability",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {}
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequestTool",
+        "typeVersion": 4.4,
+        "position": [
+          496,
+          304
+        ],
+        "id": "651f1a6c-7431-41cf-a462-7da7fc83b6ed",
+        "name": "HTTP Request"
+      },
+      {
+        "parameters": {
+          "calendar": {
+            "__rl": true,
+            "value": "shalini2410399@ssn.edu.in",
+            "mode": "list",
+            "cachedResultName": "shalini2410399@ssn.edu.in"
+          },
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.googleCalendarTool",
+        "typeVersion": 1.3,
+        "position": [
+          368,
+          208
+        ],
+        "id": "980a9424-e1f3-4695-b41b-4ce33809a99a",
+        "name": "Create an event in Google Calendar",
+        "credentials": {
+          "googleCalendarOAuth2Api": {
+            "id": "hBKfw81VLoqswUAr",
+            "name": "Google Calendar account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sendTo": "shalini2410399@ssn.edu.in",
+          "subject": "Today Trail Insights",
+          "message": "=<h2>Good Morning!! Today's Trail Run Recommendation</h2>\n\n<p><strong>Scheduled Time:</strong> {{ $json.scheduled_time }}</p>\n\n<hr>\n\n<h3>🏔️ {{ $json.recommended_trail.name }}</h3>\n\n<ul>\n  <li><strong>Miles:</strong> {{ $json.recommended_trail.miles }}</li>\n  <li><strong>Elevation Gain:</strong> {{ $json.recommended_trail.elevation }} ft</li>\n  <li><strong>Estimated Time:</strong> {{ $json.recommended_trail.estimated_time }}</li>\n  <li><strong>Shade Level:</strong> {{ $json.recommended_trail.shade_level }}</li>\n</ul>\n\n<hr>\n\n<h3>☀️ Weather Summary</h3>\n<p>{{ $json.weather_summary }}</p>\n\n<h3> Why this trail</h3>\n<p>{{ $json.reasoning }}</p>\n\n<hr>\n<p style=\"color:gray; font-size:12px;\">Sent automatically by your n8n trail planner 🌲</p>",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          704,
+          -16
+        ],
+        "id": "23dc2a04-4be1-4ac9-8344-b3b2efa270dd",
+        "name": "Send a message",
+        "webhookId": "45b07fc9-c9a5-4549-bc2d-64edb9e0c001",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "kPAnHPWud6ZuoHpS",
+            "name": "Gmail account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": "llama-3.3-70b-versatile",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+        "typeVersion": 1,
+        "position": [
+          80,
+          208
+        ],
+        "id": "09050cb6-1f8d-4cb4-ab1f-62608b09472a",
+        "name": "Groq Chat Model",
+        "credentials": {
+          "groqApi": {
+            "id": "4edstm5otsql4Xwp",
+            "name": "Groq account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "documentId": {
+            "__rl": true,
+            "value": "11nkLtLf65T1iWqr_H8M8txJA3TedyTz09NcBdXsuTiM",
+            "mode": "list",
+            "cachedResultName": "Trails",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11nkLtLf65T1iWqr_H8M8txJA3TedyTz09NcBdXsuTiM/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Sheet1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/11nkLtLf65T1iWqr_H8M8txJA3TedyTz09NcBdXsuTiM/edit#gid=0"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheetsTool",
+        "typeVersion": 4.7,
+        "position": [
+          624,
+          288
+        ],
+        "id": "8401d47f-8191-4982-a534-c2756f8d92e7",
+        "name": "Get row(s) in sheet in Google Sheets",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "MCLVmIvqJwone6CU",
+            "name": "Google Sheets account 4"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Get the agent output\nconst inputData = $input.first().json;\n\n// Extract the output field (which contains the JSON string)\nlet rawOutput = inputData.output || inputData.text || '';\n\n// Try to parse the JSON\nlet parsedData = {};\n\ntry {\n  // Parse the JSON string\n  parsedData = JSON.parse(rawOutput);\n} catch (e) {\n  // If parsing fails, try to extract whatever we can\n  parsedData = {\n    run_scheduled: false,\n    scheduled_time: 'N/A',\n    weather_summary: 'Error parsing weather data',\n    recommended_trail: {\n      name: 'N/A',\n      miles: 'N/A',\n      elevation: 'N/A',\n      estimated_time: 'N/A',\n      shade_level: 'N/A'\n    },\n    reasoning: 'Unable to parse trail data'\n  };\n}\n\n// Return the parsed data for the Gmail node\nreturn [{ json: parsedData }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          512,
+          -48
+        ],
+        "id": "23c5c575-01ad-47f9-acd8-3518ebb60032",
+        "name": "Code in JavaScript"
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Request": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create an event in Google Calendar": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Groq Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get row(s) in sheet in Google Sheets": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "Shalini Venkatesh",
+    "name": "Trail Planner",
+    "description": "Final working version: Tends to limited tokens of Groq models. (Broken json is cleared in the code node).AI-powered trail run planner that checks calendars, pulls weather, recommends a trail, and emails the suggestion.",
+    "autosaved": true,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-07-08T12:42:37.627Z",
+        "id": 1,
+        "workflowId": "J6oaZxIfB8LSyqnT",
+        "versionId": "9b9916d0-8b59-4c69-9923-51ddd2d14dbe",
+        "event": "activated",
+        "userId": "f1dffa93-22c6-42c8-9f89-bc0a15f8645f"
+      }
+    ]
+  },
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "checksum": "ec4262544addcb3937efacb333f8f5ed96cb04ef722fe03a61a271e7bac192ff"
+}
